@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -16,10 +17,9 @@
 
     :root {
       --primary: #0866ff;
-      --primary-dark: #0052cc;
       --background: #f0f2f5;
       --text: #172033;
-      --muted: #7d8798;
+      --muted: #8993a4;
       --border: #e8edf4;
     }
 
@@ -27,25 +27,22 @@
       min-height: 100vh;
       min-height: 100dvh;
       display: flex;
-      justify-content: center;
       align-items: center;
+      justify-content: center;
       padding: 20px;
-      background:
-        radial-gradient(circle at top left, #dceaff, transparent 45%),
-        linear-gradient(135deg, #f5f7fb, #eaf0f8);
       color: var(--text);
+      background: linear-gradient(135deg, #e5efff, #f5f7fb);
     }
 
     .chat-container {
       width: 100%;
       max-width: 460px;
-      height: min(720px, calc(100dvh - 40px));
+      height: min(760px, calc(100dvh - 40px));
       min-height: 400px;
       display: flex;
       flex-direction: column;
       overflow: hidden;
-      background: #fff;
-      border: 1px solid rgba(255,255,255,.8);
+      background: white;
       border-radius: 22px;
       box-shadow: 0 20px 60px rgba(30, 55, 90, .15);
     }
@@ -77,7 +74,7 @@
       bottom: 0;
       width: 12px;
       height: 12px;
-      border: 2px solid #fff;
+      border: 2px solid white;
       border-radius: 50%;
       background: #20d67a;
     }
@@ -88,7 +85,7 @@
     }
 
     .header-info h1 {
-      font-size: 17px;
+      font-size: 16px;
       margin-bottom: 5px;
     }
 
@@ -97,45 +94,21 @@
       opacity: .9;
     }
 
-    .header-status {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 11px;
-      white-space: nowrap;
-    }
-
-    .status-dot {
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-      background: #72ffb2;
-    }
-
     .chat-messages {
       flex: 1;
       min-height: 0;
-      padding: 20px 16px;
       overflow-y: auto;
       display: flex;
       flex-direction: column;
-      gap: 15px;
+      gap: 14px;
+      padding: 20px 15px;
       background: #fbfcfe;
       scroll-behavior: smooth;
     }
 
-    .chat-messages::-webkit-scrollbar {
-      width: 5px;
-    }
-
-    .chat-messages::-webkit-scrollbar-thumb {
-      background: #dce3ed;
-      border-radius: 10px;
-    }
-
     .date-divider {
       align-self: center;
-      padding: 6px 12px;
+      padding: 7px 12px;
       border-radius: 20px;
       background: #edf2f8;
       color: var(--muted);
@@ -146,15 +119,15 @@
       display: flex;
       flex-direction: column;
       max-width: 85%;
-      animation: appear .2s ease-out;
+      animation: appear .18s ease-out;
     }
 
-    .message-row.incoming {
+    .incoming {
       align-self: flex-start;
       align-items: flex-start;
     }
 
-    .message-row.outgoing {
+    .outgoing {
       align-self: flex-end;
       align-items: flex-end;
     }
@@ -169,8 +142,8 @@
     }
 
     .incoming .message {
-      background: #edf1f7;
       color: #273449;
+      background: #edf1f7;
       border-bottom-left-radius: 5px;
     }
 
@@ -178,60 +151,37 @@
       color: white;
       background: linear-gradient(135deg, #1680ff, #0866ff);
       border-bottom-right-radius: 5px;
-      box-shadow: 0 3px 8px rgba(8,102,255,.12);
+    }
+
+    .sender-name {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 11px;
+      font-weight: bold;
+      opacity: .85;
     }
 
     .message-meta {
-      display: flex;
-      align-items: center;
-      gap: 5px;
       margin-top: 5px;
       padding: 0 4px;
       color: #98a2b3;
       font-size: 10px;
     }
 
-    .message-status {
-      color: var(--primary);
+    .system-message {
+      align-self: center;
+      color: #8993a4;
       font-size: 11px;
-    }
-
-    .typing {
-      display: none;
-      align-self: flex-start;
-      padding: 12px 15px;
-      background: #edf1f7;
-      border-radius: 16px;
-      gap: 4px;
-    }
-
-    .typing.active {
-      display: flex;
-    }
-
-    .typing span {
-      width: 6px;
-      height: 6px;
-      background: #8d9aaf;
-      border-radius: 50%;
-      animation: bounce 1s infinite;
-    }
-
-    .typing span:nth-child(2) {
-      animation-delay: .15s;
-    }
-
-    .typing span:nth-child(3) {
-      animation-delay: .3s;
+      text-align: center;
     }
 
     .chat-input-area {
       display: flex;
       align-items: center;
       gap: 9px;
-      padding: 13px;
+      padding: 12px;
       border-top: 1px solid var(--border);
-      background: #fff;
+      background: white;
     }
 
     .chat-input-area input {
@@ -245,53 +195,35 @@
       background: #f6f8fb;
       color: var(--text);
       font-size: 14px;
-      transition: border-color .2s, background .2s;
     }
 
     .chat-input-area input:focus {
       border-color: var(--primary);
-      background: #fff;
-    }
-
-    .chat-input-area input::placeholder {
-      color: #9ba5b5;
+      background: white;
     }
 
     .send-button {
       flex-shrink: 0;
       width: 44px;
       height: 44px;
-      display: grid;
-      place-items: center;
       border: none;
       border-radius: 50%;
-      color: #fff;
+      color: white;
       background: var(--primary);
       cursor: pointer;
       font-size: 19px;
-      transition: transform .2s, background .2s, opacity .2s;
-    }
-
-    .send-button:hover {
-      background: var(--primary-dark);
-      transform: scale(1.05);
-    }
-
-    .send-button:active {
-      transform: scale(.94);
     }
 
     .send-button:disabled {
-      cursor: not-allowed;
       opacity: .45;
-      transform: none;
+      cursor: not-allowed;
     }
 
     .chat-footer {
-      padding: 0 12px 10px;
-      text-align: center;
-      background: #fff;
+      padding: 0 10px 12px;
       color: #a1a9b7;
+      background: white;
+      text-align: center;
       font-size: 10px;
     }
 
@@ -306,24 +238,17 @@
       }
     }
 
-    @keyframes bounce {
-      0%, 60%, 100% { transform: translateY(0); }
-      30% { transform: translateY(-5px); }
-    }
-
     @media (max-width: 520px) {
       body {
         padding: 0;
-        background: #fff;
+        background: white;
       }
 
       .chat-container {
-        width: 100%;
         max-width: none;
         height: 100vh;
         height: 100dvh;
         min-height: 0;
-        border: none;
         border-radius: 0;
         box-shadow: none;
       }
@@ -344,10 +269,8 @@
 
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after {
-        animation-duration: .01ms !important;
-        animation-iteration-count: 1 !important;
+        animation: none !important;
         scroll-behavior: auto !important;
-        transition-duration: .01ms !important;
       }
     }
   </style>
@@ -363,12 +286,7 @@
 
       <div class="header-info">
         <h1>Kênh Chat Trực Tuyến</h1>
-        <p id="connection-status">Sẵn sàng trò chuyện cùng bạn</p>
-      </div>
-
-      <div class="header-status">
-        <span class="status-dot"></span>
-        Trực tuyến
+        <p id="connectionStatus">Đang kết nối...</p>
       </div>
     </header>
 
@@ -377,20 +295,8 @@
       id="chatMessages"
       aria-label="Lịch sử tin nhắn"
       aria-live="polite"
-      aria-relevant="additions"
     >
-      <div class="date-divider">Bắt đầu trò chuyện</div>
-
-      <div class="message-row incoming">
-        <div class="message">
-          Xin chào! 👋 Chào mừng bạn đến với kênh chat trực tuyến. Mình có thể giúp gì cho bạn?
-        </div>
-        <div class="message-meta">Hệ thống · Vừa xong</div>
-      </div>
-
-      <div class="typing" id="typingIndicator" aria-label="Đang nhập">
-        <span></span><span></span><span></span>
-      </div>
+      <div class="date-divider">Phòng chat chung</div>
     </section>
 
     <form class="chat-input-area" id="chatForm">
@@ -402,157 +308,121 @@
         maxlength="2000"
         aria-label="Nội dung tin nhắn"
       >
+
       <button
         class="send-button"
         id="sendButton"
         type="submit"
         aria-label="Gửi tin nhắn"
-        title="Gửi tin nhắn"
         disabled
-      >
-        ➤
-      </button>
+      >➤</button>
     </form>
 
     <footer class="chat-footer">
-      Tin nhắn của bạn được hiển thị trong phiên chat này.
+      Chat trực tuyến · Vui lòng không chia sẻ thông tin nhạy cảm
     </footer>
   </main>
 
+  <script src="/socket.io/socket.io.js"></script>
   <script>
+    const socket = io();
+
     const chatMessages = document.getElementById("chatMessages");
     const chatForm = document.getElementById("chatForm");
     const messageInput = document.getElementById("messageInput");
     const sendButton = document.getElementById("sendButton");
-    const typingIndicator = document.getElementById("typingIndicator");
+    const connectionStatus = document.getElementById("connectionStatus");
 
-    const STORAGE_KEY = "online_chat_messages_v1";
+    let myName = localStorage.getItem("chat_display_name");
 
-    function getTime() {
-      return new Intl.DateTimeFormat("vi-VN", {
-        hour: "2-digit",
-        minute: "2-digit"
-      }).format(new Date());
+    if (!myName) {
+      myName = prompt("Nhập tên hiển thị của bạn:") || "Khách";
+      myName = myName.trim().slice(0, 30) || "Khách";
+      localStorage.setItem("chat_display_name", myName);
     }
 
     function scrollToBottom() {
       chatMessages.scrollTop = chatMessages.scrollHeight;
     }
 
-    function createMessage(text, type, time, status = "") {
+    function renderMessage(message) {
       const row = document.createElement("div");
-      row.className = `message-row ${type}`;
+      const mine = message.id === socket.id;
+
+      row.className = "message-row " +
+        (mine ? "outgoing" : "incoming");
 
       const bubble = document.createElement("div");
       bubble.className = "message";
-      // Dùng textContent để tránh chèn HTML không an toàn.
-      bubble.textContent = text;
+
+      const sender = document.createElement("span");
+      sender.className = "sender-name";
+      sender.textContent = mine ? "Bạn" : message.name;
+
+      const content = document.createElement("div");
+      content.textContent = message.text;
+
+      bubble.append(sender, content);
 
       const meta = document.createElement("div");
       meta.className = "message-meta";
-
-      const timeText = document.createElement("span");
-      timeText.textContent = time || getTime();
-      meta.appendChild(timeText);
-
-      if (status && type === "outgoing") {
-        const statusText = document.createElement("span");
-        statusText.className = "message-status";
-        statusText.textContent = "✓ " + status;
-        meta.appendChild(statusText);
-      }
+      meta.textContent = message.time;
 
       row.append(bubble, meta);
-      chatMessages.insertBefore(row, typingIndicator);
 
-      return row;
+      chatMessages.appendChild(row);
+      scrollToBottom();
     }
 
-    function saveMessage(text, type, time) {
-      try {
-        const history = JSON.parse(
-          localStorage.getItem(STORAGE_KEY) || "[]"
-        );
-
-        history.push({ text, type, time });
-
-        // Giới hạn lịch sử để tránh lưu dữ liệu quá lớn.
-        localStorage.setItem(
-          STORAGE_KEY,
-          JSON.stringify(history.slice(-100))
-        );
-      } catch (error) {
-        console.warn("Không thể lưu lịch sử chat.", error);
-      }
-    }
-
-    function loadHistory() {
-      try {
-        const history = JSON.parse(
-          localStorage.getItem(STORAGE_KEY) || "[]"
-        );
-
-        if (!Array.isArray(history)) return;
-
-        history.slice(-100).forEach(item => {
-          if (
-            typeof item.text === "string" &&
-            ["incoming", "outgoing"].includes(item.type)
-          ) {
-            createMessage(
-              item.text,
-              item.type,
-              typeof item.time === "string" ? item.time : ""
-            );
-          }
-        });
-      } catch (error) {
-        console.warn("Không thể đọc lịch sử chat.", error);
-      }
-    }
-
-    messageInput.addEventListener("input", () => {
+    socket.on("connect", () => {
+      connectionStatus.textContent = "Trực tuyến · " + myName;
       sendButton.disabled = !messageInput.value.trim();
     });
 
-    chatForm.addEventListener("submit", event => {
+    socket.on("disconnect", () => {
+      connectionStatus.textContent = "Đang kết nối lại...";
+      sendButton.disabled = true;
+    });
+
+    socket.on("connect_error", () => {
+      connectionStatus.textContent = "Không thể kết nối máy chủ";
+    });
+
+    socket.on("chat-history", (history) => {
+      const divider = chatMessages.querySelector(".date-divider");
+
+      while (divider.nextSibling) {
+        divider.nextSibling.remove();
+      }
+
+      history.forEach(renderMessage);
+    });
+
+    socket.on("new-message", (message) => {
+      renderMessage(message);
+    });
+
+    messageInput.addEventListener("input", () => {
+      sendButton.disabled =
+        !messageInput.value.trim() || !socket.connected;
+    });
+
+    chatForm.addEventListener("submit", (event) => {
       event.preventDefault();
 
       const text = messageInput.value.trim();
-      if (!text) return;
 
-      const time = getTime();
+      if (!text || !socket.connected) return;
 
-      createMessage(text, "outgoing", time, "Đã gửi");
-      saveMessage(text, "outgoing", time);
+      socket.emit("send-message", {
+        name: myName,
+        text: text
+      });
 
       messageInput.value = "";
       sendButton.disabled = true;
       messageInput.focus();
-      scrollToBottom();
-
-      // Phản hồi minh họa ở phía trình duyệt.
-      // Muốn chat với người thật hoặc AI, cần kết nối máy chủ.
-      typingIndicator.classList.add("active");
-      scrollToBottom();
-
-      window.setTimeout(() => {
-        typingIndicator.classList.remove("active");
-
-        const reply =
-          "Cảm ơn bạn đã gửi tin nhắn! 😊 Đây là phản hồi tự động minh họa. Để trò chuyện theo thời gian thực, hãy kết nối ứng dụng với máy chủ chat.";
-
-        const replyTime = getTime();
-
-        createMessage(reply, "incoming", replyTime);
-        saveMessage(reply, "incoming", replyTime);
-        scrollToBottom();
-      }, 1000);
     });
-
-    loadHistory();
-    scrollToBottom();
   </script>
 </body>
 </html>
-

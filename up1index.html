@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Bubble Shooter</title>
+<style>
+*{box-sizing:border-box}
+body{
+  margin:0;min-height:100vh;background:linear-gradient(160deg,#101746,#34206b);
+  color:white;font-family:Arial,sans-serif;display:flex;justify-content:center;
+  align-items:center;padding:12px;overflow:hidden
+}
+.game{
+  width:min(100%,440px);background:#171d4a;border:1px solid #6555bd;
+  border-radius:24px;padding:16px;box-shadow:0 20px 70px #05051d99
+}
+h1{text-align:center;margin:0 0 12px;font-size:25px;color:#ffe477}
+.stats{display:flex;justify-content:space-between;gap:8px;margin-bottom:12px}
+.stat{flex:1;text-align:center;padding:10px 5px;background:#282f69;border-radius:12px}
+.stat small{display:block;color:#bfc7ff;font-size:11px;margin-bottom:5px}
+.stat strong{font-size:20px}
+canvas{
+  display:block;width:100%;height:auto;aspect-ratio:360/560;
+  background:linear-gradient(#20275d,#10173b);
+  border-radius:16px;touch-action:none;
+  -webkit-user-select:none;user-select:none;-webkit-touch-callout:none
+}
+.controls{display:flex;gap:10px;margin-top:12px}
+button{
+  border:0;border-radius:12px;padding:12px 15px;font-weight:bold;
+  cursor:pointer;background:#ffcc4d;color:#29204b;font-size:14px
+}
+#restart{flex:1}
+.help{text-align:center;color:#c5c9f5;font-size:12px;line-height:1.5;margin:12px 0 0}
+</style>
+</head>
+<body>
+<div class="game">
+  <h1>🫧 BUBBLE SHOOTER</h1>
+  <div class="stats">
+    <div class="stat"><small>ĐIỂM</small><strong id="score">0</strong></div>
+    <div class="stat"><small>KỶ LỤC</small><strong id="best">0</strong></div>
+    <div class="stat"><small>LƯỢT BẮN</small><strong id="shots">0</strong></div>
+  </div>
+  <canvas id="game" width="360" height="560"></canvas>
+  <div class="controls">
+    <button id="restart">🔄 Chơi lại</button>
+  </div>
+  <p class="help">Chạm (hoặc nhấn chuột) và kéo để ngắm · Thả tay để bắn<br>Thả gần viên bi chờ bắn để hủy · Ghép 3 viên cùng màu để ghi điểm!</p>
+</div>
+<script>
+const canvas=document.getElementById("game");
+const ctx=canvas.getContext("2d");
+const scoreEl=document.getElementById("score");
+const bestEl=document.getElementById("best");
+const shotsEl=document.getElementById("shots");
+ 
+const W=360,H=560,R=12,STEP=24,TOP=24;
+const SPEED=8;          // quãng đường bi bay mỗi khung hình chuẩn (px)
+const SUB=2;            // bước mô phỏng cố định (px) - dùng chung cho đường ngắm và bi thật
+const MIN_AIM_DIST=30;  // thả tay gần bi hơn mức này sẽ hủy bắn
+const colors=["#ff526d","#45d9ff","#ffe05a","#a77bff","#55e58b","#ff9b45"];
+let grid=[],score=0,shots=0,best=0;
+let current,next,aimX=W/2,aimY=150;
+let moving=null,gameOver=false,won=false;
+let particles=[],lastTime=0;
+let aiming=false,activeId=null,canFire=true,traj=null;
+ 
+try{best=Number(localStorage.getItem("bubbleBest")||0)}catch(e){}
+bestEl.textContent=best;
+ 
+function randomColor(){return colors[Math.floor(Math.random()*colors.length)]}
+function makeBubble(color,x,y){return {x,y,color,r:R}}
+function center(r,c){
+  return {x:18+c*STEP+(r%2)*STEP/2,y:TOP+r*STEP*0.866}
+}
+function get(r,c){return grid[r]&&grid[r][c]}
+function set(r,c,b){
+  if(!grid[r])grid[r]=[];
+  grid[r][c]=b;
+}
+function init(){
+  grid=[];score=0;shots=0;moving=null;particles=[];
+  gameOver=false;won=false;
+  aiming=false;activeId=null;canFire=true;traj=null;
+  aimX=W/2;aimY=160;
+  for(let r=0;r<9;r++){
+    grid[r]=[];
+    const count=r%2===0?14:14;
+    for(let c=0;c<count;c++){
+      if(r<5 || Math.random()<0.83){
+        const p=center(r,c);
+        grid[r][c]=makeBubble(randomColor(),p.x,p.y);
+      }
+    }
+  }
+  current=makeBubble(randomColor(),W/2,H-36);
+  next=makeBubble(randomColor(),W/2,H-36);
+  updateStats();draw();
+}
+function updateStats(){
+  scoreEl.textContent=score;
+  shotsEl.textContent=shots;
+  bestEl.textContent=best;
+}
+function drawBubble(b){
+  if(!b)return;
+  const g=ctx.createRadialGradient(b.x-R*.4,b.y-R*.5,1,b.x,b.y,R*1.3);
+  g.addColorStop(0,"#ffffff");
+  g.addColorStop(.18,b.color);
+  g.addColorStop(1,b.color);
+  ctx.beginPath();ctx.arc(b.x,b.y,R,0,Math.PI*2);
+  ctx.fillStyle=g;ctx.fill();
+  ctx.lineWidth=1.3;ctx.strokeStyle="#ffffff70";ctx.stroke();
+}
+ 
+/* ====== NGẮM & QUỸ ĐẠO ====== */
+ 
+// Góc bắn: từ tâm viên bi chờ bắn tới điểm ngắm, luôn hướng lên trên
+function aimAngle(){
+  const dx=aimX-W/2;
+  const dy=Math.min(aimY-(H-36),-1);
+  const a=Math.atan2(dy,dx);
+  return Math.max(-Math.PI+0.12,Math.min(-0.12,a));
+}
+ 
+// MỘT bước di chuyển duy nhất, dùng cho cả bi thật lẫn mô phỏng đường ngắm.
+// Trả về true nếu bi chạm trần hoặc chạm bi khác.
+function stepBubble(s){
+  s.x+=s.vx*SUB;
+  s.y+=s.vy*SUB;
+  let bounced=false;
+  if(s.x<R){s.x=R;s.vx=Math.abs(s.vx);bounced=true}
+  if(s.x>W-R){s.x=W-R;s.vx=-Math.abs(s.vx);bounced=true}
+  s.bounced=bounced;
+  if(s.y<TOP)return true;
+  for(let r=0;r<grid.length;r++)
+    for(let c=0;c<14;c++){
+      const b=get(r,c);
+      if(b&&Math.hypot(b.x-s.x,b.y-s.y)<R*2-1)return true;
+    }
+  return false;
+}
+ 
+// Ô trống gần nhất mà viên bi sẽ gắn vào (dùng cho cả bắn thật và bóng ma dự đoán)
+function findCell(x,y){
+  let bestCell=null,bestDist=Infinity;
+  for(let r=0;r<24;r++){
+    for(let c=0;c<14;c++){
+      if(get(r,c))continue;
+      const p=center(r,c);
+      if(p.x<R||p.x>W-R||p.y<R||p.y>H-60)continue;
+      let occupiedNeighbor=r===0;
+      for(const [nr,nc] of neighbors(r,c))
+        if(get(nr,nc))occupiedNeighbor=true;
+      if(!occupiedNeighbor)continue;
+      const d=Math.hypot(p.x-x,p.y-y);
+      if(d<bestDist){bestDist=d;bestCell={r,c,p}}
+    }
+  }
+  return bestCell;
+}
+ 
+function predict(angle){
+  const s={x:W/2,y:H-36,vx:Math.cos(angle),vy:Math.sin(angle),bounced:false};
+  const pts=[{x:s.x,y:s.y}];
+  for(let i=0;i<3000;i++){
+    const hit=stepBubble(s);
+    if(s.bounced)pts.push({x:s.x,y:s.y});
+    if(hit)break;
+  }
+  pts.push({x:s.x,y:s.y});
+  return {pts,end:{x:s.x,y:s.y},cell:findCell(s.x,s.y)};
+}
+function getTraj(){
+  if(!traj)traj=predict(aimAngle());
+  return traj;
+}
+ 
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  // Vạch cảnh báo phía dưới
+  ctx.setLineDash([5,5]);
+  ctx.strokeStyle="#ff718777";ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(0,H-78);ctx.lineTo(W,H-78);ctx.stroke();
+  ctx.setLineDash([]);
+ 
+  for(let r=0;r<grid.length;r++)
+    for(let c=0;c<(grid[r]||[]).length;c++)
+      drawBubble(get(r,c));
+ 
+  // Đường ngắm: quỹ đạo thật, có phản xạ tường, kèm bóng ma tại ô sẽ gắn vào
+  if(!gameOver&&!won&&!moving){
+    const t=getTraj();
+    const cancel=aiming&&!canFire;
+    ctx.setLineDash([4,6]);
+    ctx.lineWidth=1.5;
+    ctx.strokeStyle=cancel?"#ff718799":(aiming?"#ffffffd0":"#ffffff70");
+    ctx.beginPath();ctx.moveTo(t.pts[0].x,t.pts[0].y);
+    for(let i=1;i<t.pts.length;i++)ctx.lineTo(t.pts[i].x,t.pts[i].y);
+    ctx.stroke();ctx.setLineDash([]);
+    if(t.cell&&!cancel){
+      ctx.globalAlpha=aiming?.5:.25;
+      ctx.beginPath();ctx.arc(t.cell.p.x,t.cell.p.y,R-1,0,Math.PI*2);
+      ctx.fillStyle=current.color;ctx.fill();
+      ctx.lineWidth=1.3;ctx.strokeStyle="#ffffff";ctx.stroke();
+      ctx.globalAlpha=1;
+    }
+  }
+ 
+  // Bi đang bay (hoặc bi chờ bắn)
+  if(moving)drawBubble(moving);
+  else drawBubble(current);
+ 
+  // Bi kế tiếp
+  ctx.fillStyle="#d9ddff";ctx.font="11px Arial";
+  ctx.fillText("TIẾP",16,H-18);
+  const preview={...next,x:54,y:H-22,r:8};
+  ctx.beginPath();ctx.arc(preview.x,preview.y,8,0,Math.PI*2);
+  ctx.fillStyle=next.color;ctx.fill();
+ 
+  // Hiệu ứng vỡ bi
+  for(const p of particles){
+    ctx.globalAlpha=Math.max(0,p.life);
+    ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+    ctx.fillStyle=p.color;ctx.fill();
+  }
+  ctx.globalAlpha=1;
+ 
+  if(gameOver||won){
+    ctx.fillStyle="#080c2bcc";ctx.fillRect(0,0,W,H);
+    ctx.textAlign="center";
+    ctx.fillStyle=won?"#ffe477":"#ff7891";
+    ctx.font="bold 29px Arial";
+    ctx.fillText(won?"CHIẾN THẮNG!":"GAME OVER",W/2,H/2-18);
+    ctx.fillStyle="white";ctx.font="16px Arial";
+    ctx.fillText("Điểm của bạn: "+score,W/2,H/2+16);
+    ctx.font="13px Arial";ctx.fillText("Bấm Chơi lại để tiếp tục",W/2,H/2+44);
+    ctx.textAlign="start";
+  }
+}
+function neighbors(r,c){
+  const even=r%2===0;
+  return [[r,c-1],[r,c+1],[r-1,c+(even?-1:0)],[r-1,c+(even?0:1)],
+          [r+1,c+(even?-1:0)],[r+1,c+(even?0:1)]];
+}
+function group(r,c,color,seen=new Set()){
+  const key=r+","+c;
+  if(seen.has(key)||!get(r,c)||get(r,c).color!==color)return [];
+  seen.add(key);
+  let out=[[r,c]];
+  for(const [nr,nc] of neighbors(r,c))
+    out=out.concat(group(nr,nc,color,seen));
+  return out;
+}
+function removeFloating(){
+  const connected=new Set(),stack=[];
+  for(let c=0;c<14;c++)if(get(0,c))stack.push([0,c]);
+  while(stack.length){
+    const [r,c]=stack.pop(),key=r+","+c;
+    if(connected.has(key)||!get(r,c))continue;
+    connected.add(key);
+    neighbors(r,c).forEach(p=>stack.push(p));
+  }
+  let dropped=0;
+  for(let r=0;r<grid.length;r++)
+    for(let c=0;c<14;c++)
+      if(get(r,c)&&!connected.has(r+","+c)){
+        const b=get(r,c);
+        for(let i=0;i<5;i++)particles.push({
+          x:b.x,y:b.y,vx:(Math.random()-.5)*3,
+          vy:-Math.random()*3,color:b.color,r:3+Math.random()*3,life:1
+        });
+        grid[r][c]=null;dropped++;
+      }
+  score+=dropped*20;
+}
+function attachBubble(b){
+  const bestCell=findCell(b.x,b.y);
+  if(!bestCell){gameOver=true;return}
+  const {r,c,p}=bestCell;
+  set(r,c,makeBubble(b.color,p.x,p.y));
+  const matched=group(r,c,b.color);
+  if(matched.length>=3){
+    matched.forEach(([rr,cc])=>{
+      const old=get(rr,cc);
+      if(old)for(let i=0;i<7;i++)particles.push({
+        x:old.x,y:old.y,vx:(Math.random()-.5)*4,
+        vy:(Math.random()-.5)*4,color:old.color,r:2+Math.random()*4,life:1
+      });
+      grid[rr][cc]=null;
+    });
+    score+=matched.length*10;
+    removeFloating();
+  }
+  if(score>best){
+    best=score;
+    try{localStorage.setItem("bubbleBest",best)}catch(e){}
+  }
+  if(grid.every(row=>!row||row.every(b=>!b)))won=true;
+  for(let rr=0;rr<grid.length;rr++)
+    for(let cc=0;cc<14;cc++){
+      const q=get(rr,cc);
+      if(q&&q.y>=H-78)gameOver=true;
+    }
+  updateStats();
+  current=makeBubble(next.color,W/2,H-36);
+  next=makeBubble(randomColor(),W/2,H-36);
+  traj=null; // bàn cờ đã đổi -> tính lại đường ngắm
+}
+function shoot(){
+  if(gameOver||won||moving)return;
+  const a=aimAngle();
+  moving={x:W/2,y:H-36,vx:Math.cos(a),vy:Math.sin(a),color:current.color,r:R,budget:0,bounced:false};
+  shots++;updateStats();
+}
+function update(dt){
+  if(moving){
+    // Bi thật đi bằng đúng các bước SUB cố định như mô phỏng đường ngắm
+    moving.budget+=SPEED*dt;
+    while(moving&&moving.budget>=SUB){
+      moving.budget-=SUB;
+      if(stepBubble(moving)){
+        const b=moving;moving=null;attachBubble(b);
+      }
+    }
+  }
+  particles.forEach(p=>{
+    p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=.06*dt;p.life-=.025*dt;
+  });
+  particles=particles.filter(p=>p.life>0);
+}
+function loop(t){
+  const dt=Math.min((t-lastTime)/16.67||1,2);
+  lastTime=t;
+  update(dt);draw();
+  requestAnimationFrame(loop);
+}
+ 
+/* ====== ĐIỀU KHIỂN: kéo để ngắm, thả để bắn ====== */
+function setAim(e){
+  const rect=canvas.getBoundingClientRect();
+  const x=(e.clientX-rect.left)*W/rect.width;
+  const y=(e.clientY-rect.top)*H/rect.height;
+  const dx=x-W/2,dy=y-(H-36);
+  // Quá gần bi chờ bắn hoặc nằm dưới nó: vùng hủy, giữ nguyên hướng ngắm cũ
+  if(Math.hypot(dx,dy)<MIN_AIM_DIST||dy>-10){canFire=false;return}
+  aimX=x;aimY=y;canFire=true;traj=null;
+}
+function endAim(e){
+  aiming=false;activeId=null;
+  try{canvas.releasePointerCapture(e.pointerId)}catch(err){}
+}
+canvas.addEventListener("pointerdown",e=>{
+  if(activeId!==null)return;
+  if(e.pointerType==="mouse"&&e.button!==0)return;
+  e.preventDefault();
+  activeId=e.pointerId;aiming=true;
+  try{canvas.setPointerCapture(e.pointerId)}catch(err){}
+  setAim(e);
+});
+canvas.addEventListener("pointermove",e=>{
+  if(aiming){
+    if(e.pointerId===activeId){e.preventDefault();setAim(e)}
+  }else if(e.pointerType==="mouse"){
+    setAim(e); // chuột: rê để xem trước đường ngắm
+  }
+});
+canvas.addEventListener("pointerup",e=>{
+  if(e.pointerId!==activeId)return;
+  e.preventDefault();
+  setAim(e);
+  const fire=aiming&&canFire;
+  endAim(e);
+  if(fire)shoot();
+});
+canvas.addEventListener("pointercancel",e=>{
+  if(e.pointerId!==activeId)return;
+  endAim(e); // hệ thống hủy thao tác -> không bắn
+});
+canvas.addEventListener("contextmenu",e=>e.preventDefault());
+document.getElementById("restart").addEventListener("click",init);
+init();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
+ 

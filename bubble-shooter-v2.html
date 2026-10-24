@@ -1,0 +1,70 @@
+-- Chạy toàn bộ file này trong Supabase > SQL Editor > New query > Run
+-- Bảng thành tích: client KHÔNG được đọc/ghi trực tiếp, chỉ gọi qua 3 hàm bên dưới.
+
+create table if not exists public.scores (
+  id           bigint generated always as identity primary key,
+  game_id      uuid not null unique,                       -- chống ghi trùng một ván
+  player_name  text not null check (char_length(player_name) between 1 and 16),
+  score        int  not null check (score between 0 and 2600),
+  shots        int  not null check (shots between 1 and 500),
+  duration_sec int  not null check (duration_sec between 1 and 7200),
+  created_at   timestamptz not null default now()
+);
+create index if not exists scores_rank_idx on public.scores (score desc, created_at asc);
+create index if not exists scores_name_idx on public.scores (lower(player_name), score desc);
+
+alter table public.scores enable row level security;       -- bật RLS, không tạo policy nào => anon bị chặn hoàn toàn
+revoke all on public.scores from anon, authenticated;
+
+-- Gửi điểm: kiểm tra dữ liệu ở phía máy chủ
+create or replace function public.submit_score(
+  p_game_id uuid, p_name text, p_score int, p_shots int, p_duration int)
+returns json language plpgsql security definer set search_path = public as $$
+declare v_name text := btrim(regexp_replace(regexp_replace(coalesce(p_name,''), '[\x00-\x1f\x7f<>]', '', 'g'), '\s+', ' ', 'g'));
+begin
+  if p_game_id is null then raise exception 'invalid_game'; end if;
+  if char_length(v_name) not between 1 and 16 then raise exception 'invalid_name'; end if;
+  if p_score is null or p_score < 0 or p_score > 2600 then raise exception 'invalid_score'; end if;  -- 126 bi x 20 điểm tối đa
+  if p_shots is null or p_shots < 1 or p_shots > 500 then raise exception 'invalid_shots'; end if;
+  if p_duration is null or p_duration > 7200 or p_duration < p_shots * 0.4 then raise exception 'invalid_duration'; end if;
+  if exists (select 1 from public.scores
+             where lower(player_name) = lower(v_name) and created_at > now() - interval '15 seconds')
+  then raise exception 'too_fast'; end if;
+  insert into public.scores (game_id, player_name, score, shots, duration_sec)
+  values (p_game_id, v_name, p_score, p_shots, p_duration)
+  on conflict (game_id) do nothing;
+  return json_build_object('ok', true);
+end $$;
+
+-- Mỗi người chơi (không phân biệt hoa/thường) chỉ hiện điểm cao nhất.
+-- Bằng điểm: ai đạt sớm hơn xếp trên, nếu vẫn bằng thì xếp theo tên.
+create or replace function public.leaderboard_top(p_limit int default 20)
+returns table(rank bigint, player_name text, score int, achieved_at timestamptz)
+language sql stable security definer set search_path = public as $$
+  with best as (
+    select distinct on (lower(s.player_name)) s.player_name, s.score, s.created_at
+    from public.scores s order by lower(s.player_name), s.score desc, s.created_at asc)
+  select row_number() over (order by b.score desc, b.created_at asc, lower(b.player_name))::bigint,
+         b.player_name, b.score, b.created_at
+  from best b order by 1 limit least(greatest(coalesce(p_limit,20),1),100);
+$$;
+
+create or replace function public.player_rank(p_name text)
+returns table(rank bigint, total bigint, player_name text, score int, achieved_at timestamptz)
+language sql stable security definer set search_path = public as $$
+  with best as (
+    select distinct on (lower(s.player_name)) s.player_name, s.score, s.created_at
+    from public.scores s order by lower(s.player_name), s.score desc, s.created_at asc),
+  ranked as (
+    select row_number() over (order by b.score desc, b.created_at asc, lower(b.player_name))::bigint as rk,
+           count(*) over ()::bigint as total, b.player_name, b.score, b.created_at from best b)
+  select r.rk, r.total, r.player_name, r.score, r.created_at
+  from ranked r where lower(r.player_name) = lower(btrim(coalesce(p_name,'')));
+$$;
+
+revoke all on function public.submit_score(uuid,text,int,int,int) from public;
+revoke all on function public.leaderboard_top(int) from public;
+revoke all on function public.player_rank(text) from public;
+grant execute on function public.submit_score(uuid,text,int,int,int) to anon;
+grant execute on function public.leaderboard_top(int) to anon;
+grant execute on function public.player_rank(text) to anon;

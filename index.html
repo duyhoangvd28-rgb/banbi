@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>Bubble Shooter (bản lõi)</title>
+<title>Bubble Shooter</title>
 <style>
 *{box-sizing:border-box}
 body{
@@ -23,7 +23,7 @@ h1{text-align:center;margin:0 0 12px;font-size:25px;color:#ffe477}
 canvas{
   display:block;width:100%;height:auto;aspect-ratio:360/560;
   background:linear-gradient(#20275d,#10173b);
-  border-radius:16px;touch-action:none;max-height:calc(100vh - 250px);max-width:100%;margin:0 auto;
+  border-radius:16px;touch-action:none;
   -webkit-user-select:none;user-select:none;-webkit-touch-callout:none
 }
 .controls{display:flex;gap:10px;margin-top:12px}
@@ -33,11 +33,43 @@ button{
 }
 #restart{flex:1}
 .help{text-align:center;color:#c5c9f5;font-size:12px;line-height:1.5;margin:12px 0 0}
+
+.game{position:relative}
+.screen{position:absolute;inset:0;z-index:5;display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:22px 18px;border-radius:24px;overflow:auto;background:linear-gradient(160deg,#171d4afa,#2a1d5cfa)}
+.screen.show{display:flex}
+.logo{font-size:34px;font-weight:bold;color:#ffe477;text-align:center;line-height:1.15;text-shadow:0 4px 24px #ffcc4d66}
+.screen h2{margin:0;color:#ffe477;font-size:22px;text-align:center}
+.sub{color:#c5c9f5;font-size:13px;text-align:center;margin:0}
+input{width:100%;padding:13px;border-radius:12px;border:2px solid #6555bd;background:#10173b;color:#fff;font-size:16px;text-align:center;outline:none}
+input:focus{border-color:#ffcc4d}
+.err{color:#ff8da1;font-size:13px;min-height:16px;text-align:center}
+.wide{width:100%}
+button.alt{background:#3b4390;color:#fff}
+.big{font-size:54px;font-weight:bold;color:#fff;line-height:1}
+.rec{display:none;background:#ffcc4d;color:#29204b;font-weight:bold;padding:8px 14px;border-radius:999px;font-size:14px}
+.kv{display:flex;gap:8px;width:100%}
+.kv div{flex:1;text-align:center;background:#282f69;border-radius:12px;padding:9px 4px;font-size:12px;color:#bfc7ff}
+.kv b{display:block;font-size:20px;color:#fff;margin-top:3px}
+.status{font-size:13px;color:#c5c9f5;text-align:center;min-height:18px}
+.list{width:100%;flex:1;overflow:auto;display:flex;flex-direction:column;gap:6px;min-height:0}
+.row{display:flex;gap:8px;align-items:center;padding:8px 10px;border-radius:10px;background:#282f69;font-size:14px;border-left:4px solid transparent}
+.row.top1{border-left-color:#ffd34d;background:#3a3a6b}.row.top2{border-left-color:#d3d9e8}.row.top3{border-left-color:#d98f52}
+.row.me{outline:2px solid #ffcc4d}
+.rk{width:34px;text-align:center;font-weight:bold}
+.nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sc{font-weight:bold;color:#ffe477}
+.dt{font-size:11px;color:#bfc7ff;width:68px;text-align:right}
+.msg{text-align:center;color:#c5c9f5;padding:24px 8px;font-size:14px}
+#homeBtn{padding:12px 16px}
+.onl{font-size:12px;color:#9be7b0;text-align:center;margin:-6px 0 8px;min-height:15px}
+a.btn{display:block;text-align:center;text-decoration:none;border-radius:12px;padding:12px 15px;font-weight:bold;font-size:14px;background:#ffcc4d;color:#29204b}
+a.btn.alt{background:#3b4390;color:#fff}
 </style>
 </head>
 <body>
 <div class="game">
   <h1>🫧 BUBBLE SHOOTER</h1>
+  <div class="onl"></div>
   <div class="stats">
     <div class="stat"><small>ĐIỂM</small><strong id="score">0</strong></div>
     <div class="stat"><small>KỶ LỤC</small><strong id="best">0</strong></div>
@@ -46,8 +78,31 @@ button{
   <canvas id="game" width="360" height="560"></canvas>
   <div class="controls">
     <button id="restart">🔄 Chơi lại</button>
+    <button id="homeBtn" class="alt" title="Về trang chủ">🏠</button>
   </div>
   <p class="help">Chạm (hoặc nhấn chuột) và kéo để ngắm · Thả tay để bắn<br>Thả gần viên bi chờ bắn để hủy · Ghép 3 viên cùng màu để ghi điểm!</p>
+
+  <div class="screen show" id="home">
+    <div class="logo">🫧<br>BUBBLE SHOOTER</div>
+    <p class="sub">Nhập tên hoặc biệt danh để bắt đầu</p>
+    <input id="nameInput" maxlength="16" autocomplete="nickname" enterkeyhint="go" placeholder="Tên của bạn">
+    <div class="err" id="nameErr"></div>
+    <button class="wide" id="startBtn">BẮT ĐẦU CHƠI</button>
+    <a class="btn alt wide" href="bangxephang.html">🏆 BẢNG XẾP HẠNG</a>
+    <div class="onl"></div>
+  </div>
+  <div class="screen" id="over">
+    <h2 id="ovTitle">GAME OVER</h2>
+    <div class="big" id="ovScore">0</div>
+    <div class="rec" id="ovRecord">🎉 PHÁ KỶ LỤC CÁ NHÂN!</div>
+    <div class="kv"><div>KỶ LỤC CÁ NHÂN<b id="ovBest">0</b></div><div>LƯỢT BẮN<b id="ovShots">0</b></div></div>
+    <p class="sub" id="ovRank"></p>
+    <div class="status" id="ovStatus"></div>
+    <button class="alt wide" id="retryBtn" style="display:none">🔁 GỬI LẠI ĐIỂM</button>
+    <button class="wide" id="againBtn">CHƠI LẠI</button>
+    <a class="btn alt wide" href="bangxephang.html">🏆 BẢNG XẾP HẠNG</a>
+    <button class="wide alt" id="ovHomeBtn">VỀ TRANG CHỦ</button>
+  </div>
 </div>
 <script>
 const canvas=document.getElementById("game");
@@ -55,6 +110,11 @@ const ctx=canvas.getContext("2d");
 const scoreEl=document.getElementById("score");
 const bestEl=document.getElementById("best");
 const shotsEl=document.getElementById("shots");
+
+/* ====== CẤU HÌNH SUPABASE: điền 2 dòng dưới (và 2 dòng giống hệt trong bangxephang.html) ====== */
+const SUPABASE_URL="";       // ví dụ: https://abcdxyz.supabase.co
+const SUPABASE_ANON_KEY="";  // khóa anon / publishable (KHÔNG dùng service_role)
+const online=!!(SUPABASE_URL&&SUPABASE_ANON_KEY);
 
 const W=360,H=560,R=12,STEP=24,TOP=24;
 const SPEED=8;          // quãng đường bi bay mỗi khung hình chuẩn (px)
@@ -67,7 +127,6 @@ let moving=null,gameOver=false,won=false;
 let particles=[],lastTime=0;
 let aiming=false,activeId=null,canFire=true,traj=null;
 
-try{best=Number(localStorage.getItem("bubbleBest")||0)}catch(e){}
 bestEl.textContent=best;
 
 function randomColor(){return colors[Math.floor(Math.random()*colors.length)]}
@@ -295,8 +354,7 @@ function attachBubble(b){
     removeFloating();
   }
   if(score>best){
-    best=score;
-    try{localStorage.setItem("bubbleBest",best)}catch(e){}
+    best=score; // kỷ lục cá nhân được lưu khi kết thúc ván
   }
   if(grid.every(row=>!row||row.every(b=>!b)))won=true;
   for(let rr=0;rr<grid.length;rr++)
@@ -335,6 +393,7 @@ function loop(t){
   const dt=Math.min((t-lastTime)/16.67||1,2);
   lastTime=t;
   update(dt);draw();
+  if((gameOver||won)&&!ended)finishGame();
   requestAnimationFrame(loop);
 }
 
@@ -380,9 +439,126 @@ canvas.addEventListener("pointercancel",e=>{
   endAim(e); // hệ thống hủy thao tác -> không bắn
 });
 canvas.addEventListener("contextmenu",e=>e.preventDefault());
-document.getElementById("restart").addEventListener("click",init);
+
+
+/* ====== NGƯỜI CHƠI, THÀNH TÍCH, BẢNG XẾP HẠNG ====== */
+const $=id=>document.getElementById(id);
+const el=(t,c,x)=>{const e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e};
+let playerName="",gameId=null,startTime=0,ended=true,lastRec=null,lastRecord=false,boardFrom="home",boardTok=0;
+try{playerName=sessionStorage.getItem("bbName")||""}catch(e){}
+
+function show(id){document.querySelectorAll(".screen").forEach(s=>s.classList.toggle("show",s.id===id))}
+function hideScreens(){show("")}
+function cleanName(s){return String(s||"").replace(/[\u0000-\u001f\u007f<>]/g,"").replace(/\s+/g," ").trim().slice(0,16).trim()}
+function uid(){return (window.crypto&&crypto.randomUUID&&crypto.randomUUID())||"xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g,c=>{const r=Math.random()*16|0;return(c==="x"?r:(r&3|8)).toString(16)})}
+function fmtDate(d){try{return new Date(d).toLocaleDateString("vi-VN")}catch(e){return ""}}
+
+function loadHist(){try{const h=JSON.parse(localStorage.getItem("bbHistory")||"[]");return Array.isArray(h)?h:[]}catch(e){return []}}
+function saveHist(h){try{localStorage.setItem("bbHistory",JSON.stringify(h.slice(-100)))}catch(e){}}
+function pbOf(name){const k=name.toLowerCase();return loadHist().filter(g=>g&&String(g.name).toLowerCase()===k).reduce((m,g)=>Math.max(m,g.score|0),0)}
+function markSynced(id){const h=loadHist();const g=h.find(x=>x.id===id);if(g){g.synced=true;saveHist(h)}}
+
+async function rpc(fn,args){
+  if(!online)throw new Error("not_configured");
+  const ctl=new AbortController(),t=setTimeout(()=>ctl.abort(),8000);
+  const headers={"Content-Type":"application/json",apikey:SUPABASE_ANON_KEY};
+  if(!SUPABASE_ANON_KEY.startsWith("sb_"))headers.Authorization="Bearer "+SUPABASE_ANON_KEY;
+  try{
+    const res=await fetch(SUPABASE_URL.replace(/\/+$/,"")+"/rest/v1/rpc/"+fn,{method:"POST",headers,body:JSON.stringify(args),signal:ctl.signal});
+    if(!res.ok){let m="";try{m=(await res.json()).message||""}catch(e){}throw new Error(m||"HTTP "+res.status)}
+    return await res.json();
+  }finally{clearTimeout(t)}
+}
+const submitArgs=g=>({p_game_id:g.id,p_name:g.name,p_score:g.score,p_shots:g.shots,p_duration:g.duration});
+
+function startGame(){
+  if(!playerName){show("home");return}
+  init();best=pbOf(playerName);updateStats();
+  ended=false;gameId=uid();startTime=Date.now();hideScreens();
+}
+function finishGame(){
+  if(ended)return;ended=true; // chống ghi trùng: mỗi ván chỉ kết thúc một lần
+  const prev=pbOf(playerName);
+  const rec={id:gameId,name:playerName,score,shots,duration:Math.max(1,Math.round((Date.now()-startTime)/1000)),endedAt:new Date().toISOString(),won,synced:false};
+  const h=loadHist();h.push(rec);saveHist(h);
+  lastRec=rec;lastRecord=rec.score>prev&&rec.score>0;
+  setTimeout(()=>{if(lastRec!==rec)return;renderOver(rec,prev);show("over")},700);
+  syncRecord(rec);
+}
+function renderOver(rec,prev){
+  $("ovTitle").textContent=rec.won?"CHIẾN THẮNG!":"GAME OVER";
+  $("ovScore").textContent=rec.score;
+  $("ovBest").textContent=Math.max(prev,rec.score);
+  $("ovShots").textContent=rec.shots;
+  $("ovRecord").style.display=lastRecord?"inline-block":"none";
+  if(!$("ovRank").dataset.id||$("ovRank").dataset.id!==rec.id){$("ovRank").dataset.id=rec.id;$("ovRank").textContent=online?"Hạng hiện tại: …":""}
+}
+const STATUS={
+  saving:["⏳ Đang lưu thành tích…",0],ok:["✅ Đã lưu lên bảng xếp hạng",0],
+  fail:["⚠️ Không lưu được (lỗi kết nối). Điểm vẫn được giữ trên máy này.",1],
+  nocfg:["ℹ️ Chưa cấu hình bảng xếp hạng trực tuyến — thành tích chỉ lưu trên máy này.",0]
+};
+function setStatus(k){$("ovStatus").textContent=STATUS[k][0];$("retryBtn").style.display=STATUS[k][1]?"block":"none"}
+async function syncRecord(rec){
+  const cur=()=>lastRec&&lastRec.id===rec.id;
+  if(!online){if(cur())setStatus("nocfg");return}
+  if(cur())setStatus("saving");
+  try{
+    await rpc("submit_score",submitArgs(rec));
+    markSynced(rec.id);if(cur())setStatus("ok");
+    retryOld(rec.id);
+  }catch(e){
+    if(/^invalid_/.test(e.message))markSynced(rec.id); // dữ liệu bị từ chối vĩnh viễn, không gửi lại
+    if(cur())setStatus("fail");
+  }
+  if(!cur())return;
+  try{
+    const r=await rpc("player_rank",{p_name:rec.name}),x=r&&r[0];
+    if(cur())$("ovRank").textContent=x?"Hạng hiện tại: #"+x.rank+" / "+x.total:"Hạng hiện tại: chưa có";
+  }catch(e){if(cur())$("ovRank").textContent="Hạng hiện tại: không tải được"}
+}
+async function retryOld(skip){ // gửi lại các ván trước đó chưa lưu được
+  for(const g of loadHist().filter(x=>!x.synced&&x.id!==skip).slice(-5)){
+    try{await rpc("submit_score",submitArgs(g));markSynced(g.id)}catch(e){if(/^invalid_/.test(e.message))markSynced(g.id)}
+  }
+}
+
+function tryStart(){
+  const n=cleanName($("nameInput").value);
+  if(!n){$("nameErr").textContent="Vui lòng nhập tên hoặc biệt danh.";$("nameInput").focus();return}
+  $("nameErr").textContent="";$("nameInput").value=n;playerName=n;
+  try{sessionStorage.setItem("bbName",n);localStorage.setItem("bbLastName",n)}catch(e){}
+  startGame();
+}
+function goHome(){
+  try{$("nameInput").value=playerName||localStorage.getItem("bbLastName")||""}catch(e){}
+  $("nameErr").textContent="";show("home");
+}
+$("startBtn").addEventListener("click",tryStart);
+$("nameInput").addEventListener("keydown",e=>{if(e.key==="Enter")tryStart()});
+$("againBtn").addEventListener("click",startGame);
+$("ovHomeBtn").addEventListener("click",goHome);
+$("retryBtn").addEventListener("click",()=>lastRec&&syncRecord(lastRec));
+$("restart").addEventListener("click",startGame);
+$("homeBtn").addEventListener("click",goHome);
+
+/* ====== SỐ NGƯỜI ĐANG CHƠI ====== */
+const cid=(()=>{try{let c=localStorage.getItem("bbCid");if(!c){c=uid();localStorage.setItem("bbCid",c)}return c}catch(e){return uid()}})();
+async function pingOnline(beat){
+  if(!online)return;
+  try{
+    if(beat)await rpc("heartbeat",{p_client:cid});
+    const n=await rpc("online_count",{});
+    document.querySelectorAll(".onl").forEach(e=>e.textContent="🟢 "+n+" người đang chơi");
+  }catch(e){}
+}
+setInterval(()=>{if(!document.hidden)pingOnline(true)},30000);
+document.addEventListener("visibilitychange",()=>{if(!document.hidden)pingOnline(true)});
+
 init();
+if(playerName)startGame();else goHome(); // đã có tên trong phiên -> vào thẳng game
 requestAnimationFrame(loop);
+pingOnline(true);
 </script>
 </body>
 </html>

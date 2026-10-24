@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Bubble Shooter</title>
+<style>
+*{box-sizing:border-box}
+body{
+  margin:0;min-height:100vh;background:linear-gradient(160deg,#101746,#34206b);
+  color:white;font-family:Arial,sans-serif;display:flex;justify-content:center;
+  align-items:center;padding:12px;overflow:hidden
+}
+.game{
+  width:min(100%,440px);background:#171d4a;border:1px solid #6555bd;
+  border-radius:24px;padding:16px;box-shadow:0 20px 70px #05051d99
+}
+h1{text-align:center;margin:0 0 12px;font-size:25px;color:#ffe477}
+.stats{display:flex;justify-content:space-between;gap:8px;margin-bottom:12px}
+.stat{flex:1;text-align:center;padding:10px 5px;background:#282f69;border-radius:12px}
+.stat small{display:block;color:#bfc7ff;font-size:11px;margin-bottom:5px}
+.stat strong{font-size:20px}
+canvas{
+  display:block;width:100%;height:auto;aspect-ratio:360/560;
+  background:linear-gradient(#20275d,#10173b);
+  border-radius:16px;touch-action:none;
+  -webkit-user-select:none;user-select:none;-webkit-touch-callout:none
+}
+.controls{display:flex;gap:10px;margin-top:12px}
+button{
+  border:0;border-radius:12px;padding:12px 15px;font-weight:bold;
+  cursor:pointer;background:#ffcc4d;color:#29204b;font-size:14px
+}
+#restart{flex:1}
+.help{text-align:center;color:#c5c9f5;font-size:12px;line-height:1.5;margin:12px 0 0}
+
+.game{position:relative}
+.screen{position:absolute;inset:0;z-index:5;display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:22px 18px;border-radius:24px;overflow:auto;background:linear-gradient(160deg,#171d4afa,#2a1d5cfa)}
+.screen.show{display:flex}
+.logo{font-size:34px;font-weight:bold;color:#ffe477;text-align:center;line-height:1.15;text-shadow:0 4px 24px #ffcc4d66}
+.screen h2{margin:0;color:#ffe477;font-size:22px;text-align:center}
+.sub{color:#c5c9f5;font-size:13px;text-align:center;margin:0}
+input{width:100%;padding:13px;border-radius:12px;border:2px solid #6555bd;background:#10173b;color:#fff;font-size:16px;text-align:center;outline:none}
+input:focus{border-color:#ffcc4d}
+.err{color:#ff8da1;font-size:13px;min-height:16px;text-align:center}
+.wide{width:100%}
+button.alt{background:#3b4390;color:#fff}
+.big{font-size:54px;font-weight:bold;color:#fff;line-height:1}
+.rec{display:none;background:#ffcc4d;color:#29204b;font-weight:bold;padding:8px 14px;border-radius:999px;font-size:14px}
+.kv{display:flex;gap:8px;width:100%}
+.kv div{flex:1;text-align:center;background:#282f69;border-radius:12px;padding:9px 4px;font-size:12px;color:#bfc7ff}
+.kv b{display:block;font-size:20px;color:#fff;margin-top:3px}
+.status{font-size:13px;color:#c5c9f5;text-align:center;min-height:18px}
+.list{width:100%;flex:1;overflow:auto;display:flex;flex-direction:column;gap:6px;min-height:0}
+.row{display:flex;gap:8px;align-items:center;padding:8px 10px;border-radius:10px;background:#282f69;font-size:14px;border-left:4px solid transparent}
+.row.top1{border-left-color:#ffd34d;background:#3a3a6b}.row.top2{border-left-color:#d3d9e8}.row.top3{border-left-color:#d98f52}
+.row.me{outline:2px solid #ffcc4d}
+.rk{width:34px;text-align:center;font-weight:bold}
+.nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sc{font-weight:bold;color:#ffe477}
+.dt{font-size:11px;color:#bfc7ff;width:68px;text-align:right}
+.msg{text-align:center;color:#c5c9f5;padding:24px 8px;font-size:14px}
+#homeBtn{padding:12px 16px}
+.onl{font-size:12px;color:#9be7b0;text-align:center;margin:-6px 0 8px;min-height:15px}
+a.btn{display:block;text-align:center;text-decoration:none;border-radius:12px;padding:12px 15px;font-weight:bold;font-size:14px;background:#ffcc4d;color:#29204b}
+a.btn.alt{background:#3b4390;color:#fff}
+</style>
+</head>
+<body>
+<div class="game">
+  <h1>🫧 BUBBLE SHOOTER</h1>
+  <div class="onl"></div>
+  <div class="stats">
+    <div class="stat"><small>ĐIỂM</small><strong id="score">0</strong></div>
+    <div class="stat"><small>KỶ LỤC</small><strong id="best">0</strong></div>
+    <div class="stat"><small>LƯỢT BẮN</small><strong id="shots">0</strong></div>
+  </div>
+  <canvas id="game" width="360" height="560"></canvas>
+  <div class="controls">
+    <button id="restart">🔄 Chơi lại</button>
+    <button id="homeBtn" class="alt" title="Về trang chủ">🏠</button>
+  </div>
+  <p class="help">Chạm (hoặc nhấn chuột) và kéo để ngắm · Thả tay để bắn<br>Thả gần viên bi chờ bắn để hủy · Ghép 3 viên cùng màu để ghi điểm!</p>
+
+  <div class="screen show" id="home">
+    <div class="logo">🫧<br>BUBBLE SHOOTER</div>
+    <p class="sub">Nhập tên hoặc biệt danh để bắt đầu</p>
+    <input id="nameInput" maxlength="16" autocomplete="nickname" enterkeyhint="go" placeholder="Tên của bạn">
+    <div class="err" id="nameErr"></div>
+    <button class="wide" id="startBtn">BẮT ĐẦU CHƠI</button>
+    <a class="btn alt wide" href="bangxephang.html">🏆 BẢNG XẾP HẠNG</a>
+    <div class="onl"></div>
+  </div>
+  <div class="screen" id="over">
+    <h2 id="ovTitle">GAME OVER</h2>
+    <div class="big" id="ovScore">0</div>
+    <div class="rec" id="ovRecord">🎉 PHÁ KỶ LỤC CÁ NHÂN!</div>
+    <div class="kv"><div>KỶ LỤC CÁ NHÂN<b id="ovBest">0</b></div><div>LƯỢT BẮN<b id="ovShots">0</b></div></div>
+    <p class="sub" id="ovRank"></p>
+    <div class="status" id="ovStatus"></div>
+    <button class="alt wide" id="retryBtn" style="display:none">🔁 GỬI LẠI ĐIỂM</button>
+    <button class="wide" id="againBtn">CHƠI LẠI</button>
+    <a class="btn alt wide" href="bangxephang.html">🏆 BẢNG XẾP HẠNG</a>
+    <button class="wide alt" id="ovHomeBtn">VỀ TRANG CHỦ</button>
+  </div>
+</div>
+<script>
+const canvas=document.getElementById("game");
+const ctx=canvas.getContext("2d");
+const scoreEl=document.getElementById("score");
+const bestEl=document.getElementById("best");
+const shotsEl=document.getElementById("shots");
+
+/* ====== CẤU HÌNH SUPABASE: điền 2 dòng dưới (và 2 dòng giống hệt trong bangxephang.html) ====== */
+const SUPABASE_URL="";       // ví dụ: https://abcdxyz.supabase.co
+const SUPABASE_ANON_KEY="";  // khóa anon / publishable (KHÔNG dùng service_role)
+const online=!!(SUPABASE_URL&&SUPABASE_ANON_KEY);
+
+const W=360,H=560,R=12,STEP=24,TOP=24;
+const SPEED=8;          // quãng đường bi bay mỗi khung hình chuẩn (px)
+const SUB=2;            // bước mô phỏng cố định (px) - dùng chung cho đường ngắm và bi thật
+const MIN_AIM_DIST=30;  // thả tay gần bi hơn mức này sẽ hủy bắn
+const colors=["#ff526d","#45d9ff","#ffe05a","#a77bff","#55e58b","#ff9b45"];
+let grid=[],score=0,shots=0,best=0;
+let current,next,aimX=W/2,aimY=150;
+let moving=null,gameOver=false,won=false;
+let particles=[],lastTime=0;
+let aiming=false,activeId=null,canFire=true,traj=null;
+
+bestEl.textContent=best;
+
+function randomColor(){return colors[Math.floor(Math.random()*colors.length)]}
+function makeBubble(color,x,y){return {x,y,color,r:R}}
+function center(r,c){
+  return {x:18+c*STEP+(r%2)*STEP/2,y:TOP+r*STEP*0.866}
+}
+function get(r,c){return grid[r]&&grid[r][c]}
+function set(r,c,b){
+  if(!grid[r])grid[r]=[];
+  grid[r][c]=b;
+}
+function init(){
+  grid=[];score=0;shots=0;moving=null;particles=[];
+  gameOver=false;won=false;
+  aiming=false;activeId=null;canFire=true;traj=null;
+  aimX=W/2;aimY=160;
+  for(let r=0;r<9;r++){
+    grid[r]=[];
+    const count=r%2===0?14:14;
+    for(let c=0;c<count;c++){
+      if(r<5 || Math.random()<0.83){
+        const p=center(r,c);
+        grid[r][c]=makeBubble(randomColor(),p.x,p.y);
+      }
+    }
+  }
+  current=makeBubble(randomColor(),W/2,H-36);
+  next=makeBubble(randomColor(),W/2,H-36);
+  updateStats();draw();
+}
+function updateStats(){
+  scoreEl.textContent=score;
+  shotsEl.textContent=shots;
+  bestEl.textContent=best;
+}
+function drawBubble(b){
+  if(!b)return;
+  const g=ctx.createRadialGradient(b.x-R*.4,b.y-R*.5,1,b.x,b.y,R*1.3);
+  g.addColorStop(0,"#ffffff");
+  g.addColorStop(.18,b.color);
+  g.addColorStop(1,b.color);
+  ctx.beginPath();ctx.arc(b.x,b.y,R,0,Math.PI*2);
+  ctx.fillStyle=g;ctx.fill();
+  ctx.lineWidth=1.3;ctx.strokeStyle="#ffffff70";ctx.stroke();
+}
+
+/* ====== NGẮM & QUỸ ĐẠO ====== */
+
+// Góc bắn: từ tâm viên bi chờ bắn tới điểm ngắm, luôn hướng lên trên
+function aimAngle(){
+  const dx=aimX-W/2;
+  const dy=Math.min(aimY-(H-36),-1);
+  const a=Math.atan2(dy,dx);
+  return Math.max(-Math.PI+0.12,Math.min(-0.12,a));
+}
+
+// MỘT bước di chuyển duy nhất, dùng cho cả bi thật lẫn mô phỏng đường ngắm.
+// Trả về true nếu bi chạm trần hoặc chạm bi khác.
+function stepBubble(s){
+  s.x+=s.vx*SUB;
+  s.y+=s.vy*SUB;
+  let bounced=false;
+  if(s.x<R){s.x=R;s.vx=Math.abs(s.vx);bounced=true}
+  if(s.x>W-R){s.x=W-R;s.vx=-Math.abs(s.vx);bounced=true}
+  s.bounced=bounced;
+  if(s.y<TOP)return true;
+  for(let r=0;r<grid.length;r++)
+    for(let c=0;c<14;c++){
+      const b=get(r,c);
+      if(b&&Math.hypot(b.x-s.x,b.y-s.y)<R*2-1)return true;
+    }
+  return false;
+}
+
+// Ô trống gần nhất mà viên bi sẽ gắn vào (dùng cho cả bắn thật và bóng ma dự đoán)
+function findCell(x,y){
+  let bestCell=null,bestDist=Infinity;
+  for(let r=0;r<24;r++){
+    for(let c=0;c<14;c++){
+      if(get(r,c))continue;
+      const p=center(r,c);
+      if(p.x<R||p.x>W-R||p.y<R||p.y>H-60)continue;
+      let occupiedNeighbor=r===0;
+      for(const [nr,nc] of neighbors(r,c))
+        if(get(nr,nc))occupiedNeighbor=true;
+      if(!occupiedNeighbor)continue;
+      const d=Math.hypot(p.x-x,p.y-y);
+      if(d<bestDist){bestDist=d;bestCell={r,c,p}}
+    }
+  }
+  return bestCell;
+}
+
+function predict(angle){
+  const s={x:W/2,y:H-36,vx:Math.cos(angle),vy:Math.sin(angle),bounced:false};
+  const pts=[{x:s.x,y:s.y}];
+  for(let i=0;i<3000;i++){
+    const hit=stepBubble(s);
+    if(s.bounced)pts.push({x:s.x,y:s.y});
+    if(hit)break;
+  }
+  pts.push({x:s.x,y:s.y});
+  return {pts,end:{x:s.x,y:s.y},cell:findCell(s.x,s.y)};
+}
+function getTraj(){
+  if(!traj)traj=predict(aimAngle());
+  return traj;
+}
+
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  // Vạch cảnh báo phía dưới
+  ctx.setLineDash([5,5]);
+  ctx.strokeStyle="#ff718777";ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(0,H-78);ctx.lineTo(W,H-78);ctx.stroke();
+  ctx.setLineDash([]);
+
+  for(let r=0;r<grid.length;r++)
+    for(let c=0;c<(grid[r]||[]).length;c++)
+      drawBubble(get(r,c));
+
+  // Đường ngắm: quỹ đạo thật, có phản xạ tường, kèm bóng ma tại ô sẽ gắn vào
+  if(!gameOver&&!won&&!moving){
+    const t=getTraj();
+    const cancel=aiming&&!canFire;
+    ctx.setLineDash([4,6]);
+    ctx.lineWidth=1.5;
+    ctx.strokeStyle=cancel?"#ff718799":(aiming?"#ffffffd0":"#ffffff70");
+    ctx.beginPath();ctx.moveTo(t.pts[0].x,t.pts[0].y);
+    for(let i=1;i<t.pts.length;i++)ctx.lineTo(t.pts[i].x,t.pts[i].y);
+    ctx.stroke();ctx.setLineDash([]);
+    if(t.cell&&!cancel){
+      ctx.globalAlpha=aiming?.5:.25;
+      ctx.beginPath();ctx.arc(t.cell.p.x,t.cell.p.y,R-1,0,Math.PI*2);
+      ctx.fillStyle=current.color;ctx.fill();
+      ctx.lineWidth=1.3;ctx.strokeStyle="#ffffff";ctx.stroke();
+      ctx.globalAlpha=1;
+    }
+  }
+
+  // Bi đang bay (hoặc bi chờ bắn)
+  if(moving)drawBubble(moving);
+  else drawBubble(current);
+
+  // Bi kế tiếp
+  ctx.fillStyle="#d9ddff";ctx.font="11px Arial";
+  ctx.fillText("TIẾP",16,H-18);
+  const preview={...next,x:54,y:H-22,r:8};
+  ctx.beginPath();ctx.arc(preview.x,preview.y,8,0,Math.PI*2);
+  ctx.fillStyle=next.color;ctx.fill();
+
+  // Hiệu ứng vỡ bi
+  for(const p of particles){
+    ctx.globalAlpha=Math.max(0,p.life);
+    ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+    ctx.fillStyle=p.color;ctx.fill();
+  }
+  ctx.globalAlpha=1;
+
+  if(gameOver||won){
+    ctx.fillStyle="#080c2bcc";ctx.fillRect(0,0,W,H);
+    ctx.textAlign="center";
+    ctx.fillStyle=won?"#ffe477":"#ff7891";
+    ctx.font="bold 29px Arial";
+    ctx.fillText(won?"CHIẾN THẮNG!":"GAME OVER",W/2,H/2-18);
+    ctx.fillStyle="white";ctx.font="16px Arial";
+    ctx.fillText("Điểm của bạn: "+score,W/2,H/2+16);
+    ctx.font="13px Arial";ctx.fillText("Bấm Chơi lại để tiếp tục",W/2,H/2+44);
+    ctx.textAlign="start";
+  }
+}
+function neighbors(r,c){
+  const even=r%2===0;
+  return [[r,c-1],[r,c+1],[r-1,c+(even?-1:0)],[r-1,c+(even?0:1)],
+          [r+1,c+(even?-1:0)],[r+1,c+(even?0:1)]];
+}
+function group(r,c,color,seen=new Set()){
+  const key=r+","+c;
+  if(seen.has(key)||!get(r,c)||get(r,c).color!==color)return [];
+  seen.add(key);
+  let out=[[r,c]];
+  for(const [nr,nc] of neighbors(r,c))
+    out=out.concat(group(nr,nc,color,seen));
+  return out;
+}
+function removeFloating(){
+  const connected=new Set(),stack=[];
+  for(let c=0;c<14;c++)if(get(0,c))stack.push([0,c]);
+  while(stack.length){
+    const [r,c]=stack.pop(),key=r+","+c;
+    if(connected.has(key)||!get(r,c))continue;
+    connected.add(key);
+    neighbors(r,c).forEach(p=>stack.push(p));
+  }
+  let dropped=0;
+  for(let r=0;r<grid.length;r++)
+    for(let c=0;c<14;c++)
+      if(get(r,c)&&!connected.has(r+","+c)){
+        const b=get(r,c);
+        for(let i=0;i<5;i++)particles.push({
+          x:b.x,y:b.y,vx:(Math.random()-.5)*3,
+          vy:-Math.random()*3,color:b.color,r:3+Math.random()*3,life:1
+        });
+        grid[r][c]=null;dropped++;
+      }
+  score+=dropped*20;
+}
+function attachBubble(b){
+  const bestCell=findCell(b.x,b.y);
+  if(!bestCell){gameOver=true;return}
+  const {r,c,p}=bestCell;
+  set(r,c,makeBubble(b.color,p.x,p.y));
+  const matched=group(r,c,b.color);
+  if(matched.length>=3){
+    matched.forEach(([rr,cc])=>{
+      const old=get(rr,cc);
+      if(old)for(let i=0;i<7;i++)particles.push({
+        x:old.x,y:old.y,vx:(Math.random()-.5)*4,
+        vy:(Math.random()-.5)*4,color:old.color,r:2+Math.random()*4,life:1
+      });
+      grid[rr][cc]=null;
+    });
+    score+=matched.length*10;
+    removeFloating();
+  }
+  if(score>best){
+    best=score; // kỷ lục cá nhân được lưu khi kết thúc ván
+  }
+  if(grid.every(row=>!row||row.every(b=>!b)))won=true;
+  for(let rr=0;rr<grid.length;rr++)
+    for(let cc=0;cc<14;cc++){
+      const q=get(rr,cc);
+      if(q&&q.y>=H-78)gameOver=true;
+    }
+  updateStats();
+  current=makeBubble(next.color,W/2,H-36);
+  next=makeBubble(randomColor(),W/2,H-36);
+  traj=null; // bàn cờ đã đổi -> tính lại đường ngắm
+}
+function shoot(){
+  if(gameOver||won||moving)return;
+  const a=aimAngle();
+  moving={x:W/2,y:H-36,vx:Math.cos(a),vy:Math.sin(a),color:current.color,r:R,budget:0,bounced:false};
+  shots++;updateStats();
+}
+function update(dt){
+  if(moving){
+    // Bi thật đi bằng đúng các bước SUB cố định như mô phỏng đường ngắm
+    moving.budget+=SPEED*dt;
+    while(moving&&moving.budget>=SUB){
+      moving.budget-=SUB;
+      if(stepBubble(moving)){
+        const b=moving;moving=null;attachBubble(b);
+      }
+    }
+  }
+  particles.forEach(p=>{
+    p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=.06*dt;p.life-=.025*dt;
+  });
+  particles=particles.filter(p=>p.life>0);
+}
+function loop(t){
+  const dt=Math.min((t-lastTime)/16.67||1,2);
+  lastTime=t;
+  update(dt);draw();
+  if((gameOver||won)&&!ended)finishGame();
+  requestAnimationFrame(loop);
+}
+
+/* ====== ĐIỀU KHIỂN: kéo để ngắm, thả để bắn ====== */
+function setAim(e){
+  const rect=canvas.getBoundingClientRect();
+  const x=(e.clientX-rect.left)*W/rect.width;
+  const y=(e.clientY-rect.top)*H/rect.height;
+  const dx=x-W/2,dy=y-(H-36);
+  // Quá gần bi chờ bắn hoặc nằm dưới nó: vùng hủy, giữ nguyên hướng ngắm cũ
+  if(Math.hypot(dx,dy)<MIN_AIM_DIST||dy>-10){canFire=false;return}
+  aimX=x;aimY=y;canFire=true;traj=null;
+}
+function endAim(e){
+  aiming=false;activeId=null;
+  try{canvas.releasePointerCapture(e.pointerId)}catch(err){}
+}
+canvas.addEventListener("pointerdown",e=>{
+  if(activeId!==null)return;
+  if(e.pointerType==="mouse"&&e.button!==0)return;
+  e.preventDefault();
+  activeId=e.pointerId;aiming=true;
+  try{canvas.setPointerCapture(e.pointerId)}catch(err){}
+  setAim(e);
+});
+canvas.addEventListener("pointermove",e=>{
+  if(aiming){
+    if(e.pointerId===activeId){e.preventDefault();setAim(e)}
+  }else if(e.pointerType==="mouse"){
+    setAim(e); // chuột: rê để xem trước đường ngắm
+  }
+});
+canvas.addEventListener("pointerup",e=>{
+  if(e.pointerId!==activeId)return;
+  e.preventDefault();
+  setAim(e);
+  const fire=aiming&&canFire;
+  endAim(e);
+  if(fire)shoot();
+});
+canvas.addEventListener("pointercancel",e=>{
+  if(e.pointerId!==activeId)return;
+  endAim(e); // hệ thống hủy thao tác -> không bắn
+});
+canvas.addEventListener("contextmenu",e=>e.preventDefault());
+
+
+/* ====== NGƯỜI CHƠI, THÀNH TÍCH, BẢNG XẾP HẠNG ====== */
+const $=id=>document.getElementById(id);
+const el=(t,c,x)=>{const e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e};
+let playerName="",gameId=null,startTime=0,ended=true,lastRec=null,lastRecord=false,boardFrom="home",boardTok=0;
+try{playerName=sessionStorage.getItem("bbName")||""}catch(e){}
+
+function show(id){document.querySelectorAll(".screen").forEach(s=>s.classList.toggle("show",s.id===id))}
+function hideScreens(){show("")}
+function cleanName(s){return String(s||"").replace(/[\u0000-\u001f\u007f<>]/g,"").replace(/\s+/g," ").trim().slice(0,16).trim()}
+function uid(){return (window.crypto&&crypto.randomUUID&&crypto.randomUUID())||"xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g,c=>{const r=Math.random()*16|0;return(c==="x"?r:(r&3|8)).toString(16)})}
+function fmtDate(d){try{return new Date(d).toLocaleDateString("vi-VN")}catch(e){return ""}}
+
+function loadHist(){try{const h=JSON.parse(localStorage.getItem("bbHistory")||"[]");return Array.isArray(h)?h:[]}catch(e){return []}}
+function saveHist(h){try{localStorage.setItem("bbHistory",JSON.stringify(h.slice(-100)))}catch(e){}}
+function pbOf(name){const k=name.toLowerCase();return loadHist().filter(g=>g&&String(g.name).toLowerCase()===k).reduce((m,g)=>Math.max(m,g.score|0),0)}
+function markSynced(id){const h=loadHist();const g=h.find(x=>x.id===id);if(g){g.synced=true;saveHist(h)}}
+
+async function rpc(fn,args){
+  if(!online)throw new Error("not_configured");
+  const ctl=new AbortController(),t=setTimeout(()=>ctl.abort(),8000);
+  const headers={"Content-Type":"application/json",apikey:SUPABASE_ANON_KEY};
+  if(!SUPABASE_ANON_KEY.startsWith("sb_"))headers.Authorization="Bearer "+SUPABASE_ANON_KEY;
+  try{
+    const res=await fetch(SUPABASE_URL.replace(/\/+$/,"")+"/rest/v1/rpc/"+fn,{method:"POST",headers,body:JSON.stringify(args),signal:ctl.signal});
+    if(!res.ok){let m="";try{m=(await res.json()).message||""}catch(e){}throw new Error(m||"HTTP "+res.status)}
+    return await res.json();
+  }finally{clearTimeout(t)}
+}
+const submitArgs=g=>({p_game_id:g.id,p_name:g.name,p_score:g.score,p_shots:g.shots,p_duration:g.duration});
+
+function startGame(){
+  if(!playerName){show("home");return}
+  init();best=pbOf(playerName);updateStats();
+  ended=false;gameId=uid();startTime=Date.now();hideScreens();
+}
+function finishGame(){
+  if(ended)return;ended=true; // chống ghi trùng: mỗi ván chỉ kết thúc một lần
+  const prev=pbOf(playerName);
+  const rec={id:gameId,name:playerName,score,shots,duration:Math.max(1,Math.round((Date.now()-startTime)/1000)),endedAt:new Date().toISOString(),won,synced:false};
+  const h=loadHist();h.push(rec);saveHist(h);
+  lastRec=rec;lastRecord=rec.score>prev&&rec.score>0;
+  setTimeout(()=>{if(lastRec!==rec)return;renderOver(rec,prev);show("over")},700);
+  syncRecord(rec);
+}
+function renderOver(rec,prev){
+  $("ovTitle").textContent=rec.won?"CHIẾN THẮNG!":"GAME OVER";
+  $("ovScore").textContent=rec.score;
+  $("ovBest").textContent=Math.max(prev,rec.score);
+  $("ovShots").textContent=rec.shots;
+  $("ovRecord").style.display=lastRecord?"inline-block":"none";
+  if(!$("ovRank").dataset.id||$("ovRank").dataset.id!==rec.id){$("ovRank").dataset.id=rec.id;$("ovRank").textContent=online?"Hạng hiện tại: …":""}
+}
+const STATUS={
+  saving:["⏳ Đang lưu thành tích…",0],ok:["✅ Đã lưu lên bảng xếp hạng",0],
+  fail:["⚠️ Không lưu được (lỗi kết nối). Điểm vẫn được giữ trên máy này.",1],
+  nocfg:["ℹ️ Chưa cấu hình bảng xếp hạng trực tuyến — thành tích chỉ lưu trên máy này.",0]
+};
+function setStatus(k){$("ovStatus").textContent=STATUS[k][0];$("retryBtn").style.display=STATUS[k][1]?"block":"none"}
+async function syncRecord(rec){
+  const cur=()=>lastRec&&lastRec.id===rec.id;
+  if(!online){if(cur())setStatus("nocfg");return}
+  if(cur())setStatus("saving");
+  try{
+    await rpc("submit_score",submitArgs(rec));
+    markSynced(rec.id);if(cur())setStatus("ok");
+    retryOld(rec.id);
+  }catch(e){
+    if(/^invalid_/.test(e.message))markSynced(rec.id); // dữ liệu bị từ chối vĩnh viễn, không gửi lại
+    if(cur())setStatus("fail");
+  }
+  if(!cur())return;
+  try{
+    const r=await rpc("player_rank",{p_name:rec.name}),x=r&&r[0];
+    if(cur())$("ovRank").textContent=x?"Hạng hiện tại: #"+x.rank+" / "+x.total:"Hạng hiện tại: chưa có";
+  }catch(e){if(cur())$("ovRank").textContent="Hạng hiện tại: không tải được"}
+}
+async function retryOld(skip){ // gửi lại các ván trước đó chưa lưu được
+  for(const g of loadHist().filter(x=>!x.synced&&x.id!==skip).slice(-5)){
+    try{await rpc("submit_score",submitArgs(g));markSynced(g.id)}catch(e){if(/^invalid_/.test(e.message))markSynced(g.id)}
+  }
+}
+
+function tryStart(){
+  const n=cleanName($("nameInput").value);
+  if(!n){$("nameErr").textContent="Vui lòng nhập tên hoặc biệt danh.";$("nameInput").focus();return}
+  $("nameErr").textContent="";$("nameInput").value=n;playerName=n;
+  try{sessionStorage.setItem("bbName",n);localStorage.setItem("bbLastName",n)}catch(e){}
+  startGame();
+}
+function goHome(){
+  try{$("nameInput").value=playerName||localStorage.getItem("bbLastName")||""}catch(e){}
+  $("nameErr").textContent="";show("home");
+}
+$("startBtn").addEventListener("click",tryStart);
+$("nameInput").addEventListener("keydown",e=>{if(e.key==="Enter")tryStart()});
+$("againBtn").addEventListener("click",startGame);
+$("ovHomeBtn").addEventListener("click",goHome);
+$("retryBtn").addEventListener("click",()=>lastRec&&syncRecord(lastRec));
+$("restart").addEventListener("click",startGame);
+$("homeBtn").addEventListener("click",goHome);
+
+/* ====== SỐ NGƯỜI ĐANG CHƠI ====== */
+const cid=(()=>{try{let c=localStorage.getItem("bbCid");if(!c){c=uid();localStorage.setItem("bbCid",c)}return c}catch(e){return uid()}})();
+async function pingOnline(beat){
+  if(!online)return;
+  try{
+    if(beat)await rpc("heartbeat",{p_client:cid});
+    const n=await rpc("online_count",{});
+    document.querySelectorAll(".onl").forEach(e=>e.textContent="🟢 "+n+" người đang chơi");
+  }catch(e){}
+}
+setInterval(()=>{if(!document.hidden)pingOnline(true)},30000);
+document.addEventListener("visibilitychange",()=>{if(!document.hidden)pingOnline(true)});
+
+init();
+if(playerName)startGame();else goHome(); // đã có tên trong phiên -> vào thẳng game
+requestAnimationFrame(loop);
+pingOnline(true);
+</script>
+</body>
+</html>
